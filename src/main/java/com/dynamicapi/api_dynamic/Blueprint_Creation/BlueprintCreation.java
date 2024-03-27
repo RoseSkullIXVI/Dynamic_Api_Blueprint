@@ -27,6 +27,7 @@ public class BlueprintCreation {
        inboundFlux.subscribe(record -> {
         ReceiverOffset offset = record.receiverOffset();
         
+
                   
         offset.acknowledge();             
     },

@@ -17,8 +17,10 @@ import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderRecord;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class StreamHandler {
@@ -32,6 +34,11 @@ public class StreamHandler {
     
 
     public Mono<ServerResponse> handleFile(ServerRequest request) {
+        List<Header> requestHeaders = request.headers().asHttpHeaders().entrySet().stream()
+                .flatMap(headerEntry -> headerEntry.getValue().stream()
+                        .map(headerValue -> new RecordHeader(headerEntry.getKey(), headerValue.getBytes(StandardCharsets.UTF_8))))
+                .collect(Collectors.toList());
+
         return request.multipartData().flatMap(multipart -> {
             FilePart filePart = (FilePart) multipart.toSingleValueMap().get("file");
 
@@ -47,11 +54,11 @@ public class StreamHandler {
                             long timestamp = System.currentTimeMillis();
                             String metadata = "Filename" + filePart.filename();
 
-                            List<Header> headers = List.of(
-                                new RecordHeader("filename", filePart.filename().getBytes(StandardCharsets.UTF_8)),
-                                new RecordHeader("timestamp", Long.toString(timestamp).getBytes(StandardCharsets.UTF_8))
-                            );
-                            ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC, null, timestamp, null, base64,headers);
+                            List<Header> combinedHeaders = new ArrayList<>(requestHeaders);
+                            combinedHeaders.add(new RecordHeader("filename", filePart.filename().getBytes(StandardCharsets.UTF_8)));
+                            combinedHeaders.add(new RecordHeader("timestamp", Long.toString(timestamp).getBytes(StandardCharsets.UTF_8)));
+
+                            ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC, null, timestamp, null, base64,combinedHeaders);
                             return SenderRecord.create(record, metadata);
                         });
 

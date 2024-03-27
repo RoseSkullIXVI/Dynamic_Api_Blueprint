@@ -1,6 +1,7 @@
 package com.dynamicapi.api_dynamic.Handlers;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,18 +30,22 @@ public class BatchHandler {
     public BatchHandler(KafkaSender<String, String> kafkaSender) {
         this.kafkaSender = kafkaSender;
     }
-    
-    public Mono<ServerResponse> handleBatchFile(ServerRequest request){
-         return request.multipartData().flatMap(multipart -> {
-            // Process all "file" parts from the request
+
+    public Mono<ServerResponse> handleBatchFile(ServerRequest request) {
+        // Extract all request headers and transform them into Kafka RecordHeader objects
+        List<Header> requestHeaders = request.headers().asHttpHeaders().entrySet().stream()
+                .flatMap(headerEntry -> headerEntry.getValue().stream()
+                        .map(headerValue -> new RecordHeader(headerEntry.getKey(), headerValue.getBytes(StandardCharsets.UTF_8))))
+                .collect(Collectors.toList());
+
+        return request.multipartData().flatMap(multipart -> {
             List<FilePart> fileParts = multipart.get("file")
                     .stream()
                     .filter(part -> part instanceof FilePart)
                     .map(part -> (FilePart) part)
                     .collect(Collectors.toList());
 
-            if (fileParts != null && !fileParts.isEmpty()) {
-                // Create a Flux from the list of FileParts
+            if (!fileParts.isEmpty()) {
                 Flux<SenderRecord<String, String, String>> senderRecordFlux = Flux.fromIterable(fileParts)
                     .flatMap(filePart -> DataBufferUtils.join(filePart.content())
                         .map(dataBuffer -> {
@@ -49,25 +54,22 @@ public class BatchHandler {
                             DataBufferUtils.release(dataBuffer);
                             String base64 = Base64.getEncoder().encodeToString(bytes);
                             long timestamp = System.currentTimeMillis();
-                            String metadata = "Filename: " + filePart.filename();
 
-                            List<Header> headers = List.of(
-                                new RecordHeader("filename", filePart.filename().getBytes(StandardCharsets.UTF_8)),
-                                new RecordHeader("timestamp", Long.toString(timestamp).getBytes(StandardCharsets.UTF_8))
-                            );
-                            ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC, null, timestamp, null, base64, headers);
-                            return SenderRecord.create(record, metadata);
+                            // Combine file-specific headers with request headers
+                            List<Header> combinedHeaders = new ArrayList<>(requestHeaders);
+                            combinedHeaders.add(new RecordHeader("filename", filePart.filename().getBytes(StandardCharsets.UTF_8)));
+                            combinedHeaders.add(new RecordHeader("timestamp", Long.toString(timestamp).getBytes(StandardCharsets.UTF_8)));
+
+                            ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC, null, timestamp, null, base64, combinedHeaders);
+                            return SenderRecord.create(record, "Filename: " + filePart.filename());
                         }));
 
-                // Send all records created from the files
                 return kafkaSender.send(senderRecordFlux)
                         .doOnError(e -> log.error("Send failed", e))
                         .then(ServerResponse.ok().bodyValue("Files uploaded successfully"));
             } else {
-                // Handling the case where file parts are missing or not found in the request
                 return Mono.error(new RuntimeException("File parts are missing"));
             }
         });
-
     }
 }
