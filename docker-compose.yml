@@ -39,10 +39,19 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
   my-spring-app:
-    image: my-spring-app
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       - kafka
-    environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8080:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    volumes:
+      - ./src:/app/src
+      - ./build.gradle:/app/build.gradle
+      - ./settings.gradle:/app/settings.gradle
+      - ./gradlew:/app/gradlew
+      - ./gradle:/app/gradle
+      - /app/build
