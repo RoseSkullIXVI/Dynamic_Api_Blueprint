@@ -3,11 +3,9 @@ package com.dynamicapi.api_dynamic.Blueprint_Creation;
 
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.dynamicapi.api_dynamic.Blueprint_Creation.FileParsing.ParsingService.FileParsingService;
+import com.dynamicapi.api_dynamic.Hadoop.HadoopService;
+
+
 import org.json.JSONObject;
 
 import jakarta.annotation.PostConstruct;
@@ -28,10 +29,12 @@ public class BlueprintCreation {
     private final KafkaReceiver<String, String> consumer;
     private static final Logger consumerLog = LoggerFactory.getLogger(BlueprintCreation.class);
     private final FileParsingService fileParsingService;
+    private final HadoopService Hservice;
 
-    public BlueprintCreation(KafkaReceiver<String, String> consumer, FileParsingService fileParsingService) {
+    public BlueprintCreation(KafkaReceiver<String, String> consumer, FileParsingService fileParsingService , HadoopService Hservice) {
         this.consumer = consumer;
         this.fileParsingService = fileParsingService;
+        this.Hservice = Hservice;
     }
     @PostConstruct
     public void createBlueprint(){
@@ -46,8 +49,9 @@ public class BlueprintCreation {
         InputStream inputStream = new ByteArrayInputStream(decodedString.getBytes());
         String keywords = fileParsingService.parseFile(inputStream,filename);
         String blueprint = getBlueprint(keywords, record);
+        // System.out.println("hiiii here" );
+        // Hservice.appendJsonStringToHdfsFile(blueprint);
         System.out.println("Blueprint created" + blueprint );
-        
        } catch (Exception e) {
         consumerLog.error("Error parsing file", e);
        }
@@ -65,7 +69,7 @@ public class BlueprintCreation {
         blueprint.put("keywords", keywords);
         blueprint.put("filename", new String(record.headers().lastHeader("filename").value(), StandardCharsets.UTF_8));
         blueprint.put("timestamp", new String(record.headers().lastHeader("timestamp").value(), StandardCharsets.UTF_8));
-        blueprint.put("Velocity", record.topic()); // Assuming topic() returns a String already
+        blueprint.put("Velocity", record.topic()); 
         blueprint.put("user-agent", new String(record.headers().lastHeader("User-Agent").value(), StandardCharsets.UTF_8));
         blueprint.put("host", new String(record.headers().lastHeader("Host").value(), StandardCharsets.UTF_8));
         String contentLengthString = new String(record.headers().lastHeader("Content-Length").value(), StandardCharsets.UTF_8);
@@ -86,7 +90,6 @@ public class BlueprintCreation {
         } else {
             return length/1073741824 + "GB";
         }
-    }
-        
+    }        
     
 }
