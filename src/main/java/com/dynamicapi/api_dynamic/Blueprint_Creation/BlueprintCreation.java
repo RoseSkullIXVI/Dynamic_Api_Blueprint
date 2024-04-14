@@ -50,7 +50,7 @@ public class BlueprintCreation {
         String keywords = fileParsingService.parseFile(inputStream,filename);
         String blueprint = getBlueprint(keywords, record);
         // System.out.println("hiiii here" );
-        // Hservice.appendJsonStringToHdfsFile(blueprint);
+         Hservice.appendJsonStringToHdfsFile(blueprint);
         System.out.println("Blueprint created" + blueprint );
        } catch (Exception e) {
         consumerLog.error("Error parsing file", e);

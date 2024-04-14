@@ -1,6 +1,39 @@
 version: '3'
 
 services:
+  namenode:
+    image: apache/hadoop:3
+    hostname: roseskull
+    command: ["hdfs", "namenode"]
+    ports:
+      - 9870:9870
+    env_file:
+      - ./config/hadoop.env
+    environment:
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+
+  datanode:
+    image: apache/hadoop:3
+    command: ["hdfs", "datanode"]
+    env_file:
+      - ./config/hadoop.env
+
+  resourcemanager:
+    image: apache/hadoop:3
+    hostname: resourcemanager
+    command: ["yarn", "resourcemanager"]
+    ports:
+      - 8088:8088
+    env_file:
+      - ./config/hadoop.env
+    volumes:
+      - ./test.sh:/opt/test.sh
+
+  nodemanager:
+    image: apache/hadoop:3
+    command: ["yarn", "nodemanager"]
+    env_file:
+      - ./config/hadoop.env
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -9,9 +42,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - 22181:2181
-    networks:
-      - spring-hadoop-net 
-  
+
   kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
@@ -28,8 +59,6 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-    networks:
-      - spring-hadoop-net 
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -41,8 +70,6 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-    networks:
-      - spring-hadoop-net 
 
   my-spring-app:
     build:
@@ -54,16 +81,3 @@ services:
       - "8080:8080"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      HADOOP_NAMENODE_URI: "hdfs://172.20.0.6:9870"
-    networks:
-      - spring-hadoop-net      
-
-
-
-networks:
-  spring-hadoop-net:
-    external: true
- 
-
-
-

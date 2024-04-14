@@ -3,24 +3,24 @@ package com.dynamicapi.api_dynamic.Hadoop;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-@Service
+@Component
 public class HadoopService {
-
-    private final FileSystem fileSystem;
+    
+    
+    private FileSystem fileSystem;
 
     public HadoopService(FileSystem fileSystem) {
         this.fileSystem = fileSystem;
     }
 
     public void appendJsonStringToHdfsFile(String jsonString) throws IOException {
-        Path path = new Path("hdfs://172.20.0.6:9870/user/hadoop/input/blueprint.json");
-        // Ensure the file exists. If not, create it.
+        Path path = new Path("hdfs://roseskull:8020/user/hadoop/input/blueprint.json");
         if (!fileSystem.exists(path)) {
             try (FSDataOutputStream outputStream = fileSystem.create(path)) {
                System.out.println("File created");
