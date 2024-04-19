@@ -60,30 +60,4 @@ public class HadoopService {
         
     }
 
-    // private void appendWithRetry(Path path, String jsonString) throws IOException {
-    //     int retryCount = 0;
-    //     boolean success = false;
-    //     while (retryCount < MAX_RETRIES && !success) {
-    //         try (FSDataOutputStream output = fileSystem.append(path)) {
-    //             output.writeChars(jsonString);
-    //             System.out.println("File appended");
-    //             success = true; 
-    //             output.close(); // Set success to true if append succeeds
-    //         } catch (IOException e) {
-    //             System.out.println("Attempt " + (retryCount + 1) + " failed: " + e.getMessage());
-    //             if (retryCount < MAX_RETRIES - 1) {
-    //                 try {
-    //                     Thread.sleep(RETRY_WAIT_TIME);  // Wait before retrying
-    //                 } catch (InterruptedException ie) {
-    //                     Thread.currentThread().interrupt();
-    //                     throw new IOException("Retry interrupted", ie);
-    //                 }
-    //             }
-    //             retryCount++;
-    //         }
-    //     }
-    //     if (!success) {
-    //         throw new IOException("Failed to append to file after " + MAX_RETRIES + " attempts");
-    //     }
-    // }
 }
