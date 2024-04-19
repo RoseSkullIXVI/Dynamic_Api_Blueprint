@@ -22,8 +22,8 @@ public class HadoopService {
         this.fileSystem = fileSystem;
     }
 
-    public void appendJsonStringToHdfsFile(String jsonString) throws IOException {
-        Path path = new Path("hdfs://roseskull:8020/test/input/test.json");
+    public void appendJsonStringToHdfsFile(String jsonString, String filename) throws IOException {
+        Path path = new Path("hdfs://roseskull:8020/blueprint/input/"+filename+"_blueprint.json");
         Path parentDir = path.getParent();
 
         if (!fileSystem.exists(parentDir)) {
@@ -45,7 +45,7 @@ public class HadoopService {
     }
     public void insertInputStream (InputStream input, String filename) throws IOException{
         String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        Path path = new Path("hdfs://roseskull:8020/test/input/"+timeStamp+"_"+filename);
+        Path path = new Path("hdfs://roseskull:8020/blueprint/input/"+timeStamp+"_"+filename);
         Path parentDir = path.getParent();
 
         if (!fileSystem.exists(parentDir)) {

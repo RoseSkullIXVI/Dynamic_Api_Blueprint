@@ -42,16 +42,15 @@ public class BlueprintCreation {
        inboundFlux.subscribe(record -> {
        ReceiverOffset offset = record.receiverOffset();
        String base64 = record.value();
-       String filename = record.headers().lastHeader("filename").value().toString();
        try {
         byte[] decodedBytes = Base64.getDecoder().decode(base64);
         String decodedString = new String(decodedBytes);
         InputStream inputStream = new ByteArrayInputStream(decodedString.getBytes());
+        String filename = new String(record.headers().lastHeader("filename").value(), StandardCharsets.UTF_8);
         String keywords = fileParsingService.parseFile(inputStream,filename);
         String blueprint = getBlueprint(keywords, record);
-         Hservice.appendJsonStringToHdfsFile(blueprint);
-         filename = new String(record.headers().lastHeader("filename").value(), StandardCharsets.UTF_8);
-         Hservice.insertInputStream(inputStream, filename);
+        Hservice.appendJsonStringToHdfsFile(blueprint,filename);
+        Hservice.insertInputStream(inputStream, filename);
         System.out.println("Blueprint created" + blueprint );
        } catch (Exception e) {
         consumerLog.error("Error parsing file", e);
