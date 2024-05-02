@@ -45,10 +45,12 @@ public class BlueprintCreation {
        try {
         byte[] decodedBytes = Base64.getDecoder().decode(base64);
         String decodedString = new String(decodedBytes);
+        byte[] bytesToSend = decodedString.getBytes();
+        int contentLength = bytesToSend.length;
         InputStream inputStream = new ByteArrayInputStream(decodedString.getBytes());
         String filename = new String(record.headers().lastHeader("filename").value(), StandardCharsets.UTF_8);
         String keywords = fileParsingService.parseFile(inputStream,filename);
-        String blueprint = getBlueprint(keywords, record);
+        String blueprint = getBlueprint(keywords, record, contentLength);
         Hservice.appendJsonStringToHdfsFile(blueprint,filename);
         Hservice.insertInputStream(inputStream, filename);
         System.out.println("Blueprint created" + blueprint );
@@ -64,23 +66,24 @@ public class BlueprintCreation {
     }
 
 
-    private String getBlueprint(String keywords, ReceiverRecord<String, String> record){
+    private String getBlueprint(String keywords, ReceiverRecord<String, String> record , int contentLength){
         JSONObject blueprint = new JSONObject();
         blueprint.put("keywords", keywords);
         blueprint.put("filename", new String(record.headers().lastHeader("filename").value(), StandardCharsets.UTF_8));
         blueprint.put("timestamp", new String(record.headers().lastHeader("timestamp").value(), StandardCharsets.UTF_8));
-        blueprint.put("Velocity", record.topic()); 
-        blueprint.put("user-agent", new String(record.headers().lastHeader("User-Agent").value(), StandardCharsets.UTF_8));
-        blueprint.put("host", new String(record.headers().lastHeader("Host").value(), StandardCharsets.UTF_8));
-        String contentLengthString = new String(record.headers().lastHeader("Content-Length").value(), StandardCharsets.UTF_8);
-        String volume = contentVolume(contentLengthString);
+        blueprint.put("Velocity",new String(record.headers().lastHeader("Velocity").value(), StandardCharsets.UTF_8)); 
+        blueprint.put("user-agent", new String(record.headers().lastHeader("user-agent").value(), StandardCharsets.UTF_8));
+        blueprint.put("host", new String(record.headers().lastHeader("host").value(), StandardCharsets.UTF_8));
+        String volume = contentVolume(contentLength);
         blueprint.put("volume", volume);
-
+        blueprint.put("Type-of-Source", new String(record.headers().lastHeader("Type-of-Source").value(), StandardCharsets.UTF_8));
+        blueprint.put("Type-of-Data", new String(record.headers().lastHeader("Type-of-Data").value(), StandardCharsets.UTF_8));
+        blueprint.put("Value", new String(record.headers().lastHeader("Value").value(), StandardCharsets.UTF_8));
+        blueprint.put("Veracity", new String(record.headers().lastHeader("Veracity").value(), StandardCharsets.UTF_8));
         return blueprint.toString();                
     } 
 
-    private String contentVolume (String contentLength){
-        int length = Integer.parseInt(contentLength);
+    private String contentVolume (int length){
         if(length < 1024){
             return length + "B";
         } else if(length < 1048576){
